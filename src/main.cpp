@@ -98,34 +98,168 @@ static void demoTick() {
   }
 }
 
-static const char* PET_IDLE[]  = {"  /\\_/\\  ", " ( o.o ) ", "  > ^ <  ", " /|   |\\ ", "(_|   |_)"};
-static const char* PET_SLEEP[] = {"  /\\_/\\  ", " ( -.- ) ", "  > ^ < z", " /|   |\\Z", "(_|   |_)"};
-static const char* PET_BUSY[]  = {"  /\\_/\\  ", " ( @.@ ) ", "  > ^ <  ", " /|>>>|\\ ", "(_|   |_)"};
-static const char* PET_ATTN[]  = {"  /\\_/\\ !", " ( O.O )!", "  > ^ <  ", " /|   |\\ ", "(_|   |_)"};
-static const char* PET_HAPPY[] = {"* /\\_/\\ *", " \\(^.^)/ ", "  > ^ <  ", " /|   |\\ ", "(_|   |_)"};
+// ───── Species art: 6 species × 5 personas × 2 animation frames ─────
+// Each persona has 2 frames for breathing/blink animation cycling at 1 Hz
+struct Frame { const char* lines[5]; };
+struct Species {
+  const char* name;
+  uint16_t bodyCol;
+  Frame frames[5][2];  // [persona][frame]
+};
 
-static const char** petArt(Persona p, uint16_t* col) {
+// Cat
+static const Species SP_CAT = {"cat", C_BODY, {
+  // SLEEP, IDLE, BUSY, ATTN, HAPPY
+  {{"  /\\_/\\  ", " ( -.- ) ", "  > ^ < z", " /|   |\\Z", "(_|   |_)"},
+   {"  /\\_/\\  ", " ( -.- ) ", "  > ^ <  ", " /|   |\\z", "(_|   |_)"}},
+  {{"  /\\_/\\  ", " ( o.o ) ", "  > ^ <  ", " /|   |\\ ", "(_|   |_)"},
+   {"  /\\_/\\  ", " ( -.o ) ", "  > ^ <  ", " /|   |\\ ", "(_|   |_)"}},
+  {{"  /\\_/\\  ", " ( @.@ ) ", "  > ^ <  ", " /|>>>|\\ ", "(_|   |_)"},
+   {"  /\\_/\\  ", " ( @.@ ) ", "  > ^ <  ", " /|<<<|\\ ", "(_|   |_)"}},
+  {{"  /\\_/\\ !", " ( O.O )!", "  > ^ <  ", " /|   |\\ ", "(_|   |_)"},
+   {" /\\_/\\  !", "( O.O ) !", " > ^ <   ", "/|   |\\  ", "_|   |_) "}},
+  {{"* /\\_/\\ *", " \\(^.^)/ ", "  > ^ <  ", " /|   |\\ ", "(_|   |_)"},
+   {"+ /\\_/\\ +", "  (^.^)  ", "  > ^ <  ", " /| ^ |\\ ", "(_|   |_)"}},
+}};
+
+// Owl
+static const Species SP_OWL = {"owl", 0xC2A6, {
+  {{"  ,___,  ", " ( -.- ) ", " ( /v\\ ) ", " (_| |_) ", "   ^ ^   "},
+   {"  ,___,  ", " ( -.- ) ", " ( |v| ) ", " (_| |_) ", "   ^ ^   "}},
+  {{"  ,___,  ", " ( o.o ) ", " ( /v\\ ) ", " (_| |_) ", "   ^ ^   "},
+   {"  ,___,  ", " ( -.o ) ", " ( /v\\ ) ", " (_| |_) ", "   ^ ^   "}},
+  {{"  ,___,  ", " ( @.@ ) ", " ( /v\\ ) ", " (_| |_) ", "  > ^ <  "},
+   {"  ,___,  ", " ( @.@ ) ", " ( |v| ) ", " (_| |_) ", "  < ^ >  "}},
+  {{"  ,!!,   ", " ( O.O ) ", " ( /v\\ ) ", " (_| |_) ", "   ^ ^   "},
+   {"  ,!!,   ", " ( O.O ) ", " (-/v\\-) ", " (_| |_) ", "   ^ ^   "}},
+  {{"  ,___,  ", " (\\_._/) ", " ( /v\\ ) ", " (_|*|_) ", "   ^ ^   "},
+   {"  ,___,  ", " (^.^) ", " ( /v\\ ) ", " (_|*|_) ", "   ^ ^   "}},
+}};
+
+// Robot
+static const Species SP_ROBOT = {"robot", C_CYAN, {
+  {{" .-----. ", " | -.- | ", " |  =  | ", " |_|=|_| ", "   |_|   "},
+   {" .-----. ", " | -.- | ", " |  -  | ", " |_|=|_| ", "   |_|   "}},
+  {{" .-----. ", " | o.o | ", " |  =  | ", " |_|=|_| ", "   |_|   "},
+   {" .-----. ", " | o.- | ", " |  =  | ", " |_|=|_| ", "   |_|   "}},
+  {{" .-----. ", " | x.x | ", " |#####| ", " |_|=|_| ", "   |_|   "},
+   {" .-----. ", " | x.x | ", " |/////| ", " |_|=|_| ", "   |_|   "}},
+  {{" .--!--. ", " | O.O | ", " |  =  | ", " |_|=|_| ", "   |_|   "},
+   {" .--!--. ", " | O.O | ", " | !=! | ", " |_|=|_| ", "   |_|   "}},
+  {{" .--*--. ", " |\\^.^/| ", " |  =  | ", " |_|=|_| ", "   |_|   "},
+   {" .--*--. ", " | ^.^ | ", " |  v  | ", " |_|=|_| ", "   |_|   "}},
+}};
+
+// Duck
+static const Species SP_DUCK = {"duck", 0xFFE0, {
+  {{"   __    ", " <(-.-)  ", "  ( v )  ", "   |_|   ", "   ^^    "},
+   {"   __    ", " <(-.-)  ", "  ( v )  ", "   |_|   ", "    ^    "}},
+  {{"   __    ", " <(o.o)  ", "  ( v )  ", "   |_|   ", "   ^^    "},
+   {"   __    ", " <(-.o)  ", "  ( v )  ", "   |_|   ", "   ^^    "}},
+  {{"   __    ", " <(@.@)  ", "  ( v )  ", "  /|_|\\  ", "   ^^    "},
+   {"   __    ", " <(@.@)  ", "  ( v )  ", "  \\|_|/  ", "   ^^    "}},
+  {{"   _!_   ", " <(O.O)  ", "  ( v )  ", "   |_|   ", "   ^^    "},
+   {"   _!_   ", " <(O.O)  ", "  ( v )  ", "   |_|   ", "    ^    "}},
+  {{"  *__*   ", " <(^.^)~ ", "  ( v )  ", "   |_|   ", "   ^^    "},
+   {"  +__+   ", " <(^.^)~ ", "  ( v )  ", "   |_|   ", "    ^    "}},
+}};
+
+// Capybara
+static const Species SP_CAPY = {"capybara", 0xC2A6, {
+  {{"  ____   ", " (-.-)~  ", " /    \\  ", " |    |  ", " ^^  ^^  "},
+   {"  ____   ", " (-.-)~  ", " /    \\  ", " |    |  ", " ^   ^   "}},
+  {{"  ____   ", " (o.o)   ", " /    \\  ", " |    |  ", " ^^  ^^  "},
+   {"  ____   ", " (-.o)   ", " /    \\  ", " |    |  ", " ^^  ^^  "}},
+  {{"  ____   ", " (@.@)   ", " /    \\  ", " |    |  ", " *^*^*^* "},
+   {"  ____   ", " (@.@)   ", " /    \\  ", " |    |  ", " ^*^*^*^ "}},
+  {{" !____!  ", " (O.O)   ", " /    \\  ", " |    |  ", " ^^  ^^  "},
+   {" !____!  ", " (O.O)   ", " /    \\  ", " |    |  ", " ^   ^   "}},
+  {{" *____*  ", " (^o^)   ", " /    \\  ", " |    |  ", " ^^  ^^  "},
+   {" +____+  ", "  (^o^)  ", " /    \\  ", " |    |  ", " ^^  ^^  "}},
+}};
+
+// Oracle — all-seeing eye (AR-RA 01)
+static const Species SP_ORACLE = {"oracle", 0xA01F /* purple */, {
+  // SLEEP
+  {{"  .---.  ", " /-...-\\ ", " | (-) | ", " \\.....| ", "  '---'  "},
+   {"  .---.  ", " /-...-\\ ", " |  -  | ", " \\.....| ", "  '---'  "}},
+  // IDLE
+  {{"  .---.  ", " /     \\ ", " | (o) | ", " \\.....| ", "  '---'  "},
+   {"  .---.  ", " /     \\ ", " | (O) | ", " \\.....| ", "  '---'  "}},
+  // BUSY
+  {{"  /---\\  ", " | * * | ", " | (@) | ", " | * * | ", "  \\---/  "},
+   {"  /---\\  ", " | + + | ", " | (@) | ", " | + + | ", "  \\---/  "}},
+  // ATTN
+  {{"  .!!!.  ", " /-...-\\ ", " | (O) | ", " \\.....| ", "  '!!!'  "},
+   {"  .###.  ", " /-...-\\ ", " | (O) | ", " \\.....| ", "  '###'  "}},
+  // HAPPY
+  {{"  .***.  ", " /-vvv-\\ ", " | (^) | ", " \\.~.~.| ", "  '***'  "},
+   {"  .+++.  ", " /-vvv-\\ ", " | (^) | ", " \\.~.~.| ", "  '+++'  "}},
+}};
+
+// Ghost
+static const Species SP_GHOST = {"ghost", C_DIM, {
+  {{"  ___   ", " /-.-\\  ", " | * | ", " | * | ", " ^^^^^^ "},
+   {"  ___   ", " /-.-\\  ", " | * | ", " | * | ", " ~~~~~~ "}},
+  {{"  ___   ", " /o.o\\  ", " |   | ", " |   | ", " ^^^^^^ "},
+   {"  ___   ", " /-.o\\  ", " |   | ", " |   | ", " ^^^^^^ "}},
+  {{"  ___   ", " /@.@\\  ", " | ~ | ", " | ~ | ", " ^^^^^^ "},
+   {"  ___   ", " /@.@\\  ", " | _ | ", " | _ | ", " ^^^^^^ "}},
+  {{" .!!!.  ", " /O.O\\  ", " |   | ", " |   | ", " ^^^^^^ "},
+   {" .!!!.  ", " /O.O\\  ", " |~~~| ", " |   | ", " ^^^^^^ "}},
+  {{" .***.  ", " /^.^\\  ", " |   | ", " |   | ", " ^^^^^^ "},
+   {" .+++.  ", " /^.^\\  ", " | v | ", " |   | ", " ^^^^^^ "}},
+}};
+
+static const Species* SPECIES[] = { &SP_ORACLE, &SP_CAT, &SP_OWL, &SP_ROBOT, &SP_DUCK, &SP_CAPY, &SP_GHOST };
+static const uint8_t N_SPECIES = sizeof(SPECIES) / sizeof(SPECIES[0]);
+static uint8_t curSpecies = 0;
+
+static int personaIdx(Persona p) {
   switch (p) {
-    case P_SLEEP: *col = C_DIM;   return PET_SLEEP;
-    case P_BUSY:  *col = C_CYAN;  return PET_BUSY;
-    case P_ATTN:  *col = C_HOT;   return PET_ATTN;
-    case P_HAPPY: *col = C_GREEN; return PET_HAPPY;
-    default:      *col = C_BODY;  return PET_IDLE;
+    case P_SLEEP: return 0;
+    case P_BUSY:  return 2;
+    case P_ATTN:  return 3;
+    case P_HAPPY: return 4;
+    default:      return 1;  // IDLE
   }
 }
 
-static void drawPet(int cx, int cy, const char** art, uint16_t color, uint8_t scale) {
+static const char* const* petArt(Persona p, uint16_t* col, uint8_t frame) {
+  const Species* sp = SPECIES[curSpecies];
+  *col = sp->bodyCol;
+  // Persona color override for emphasis
+  switch (p) {
+    case P_SLEEP: *col = C_DIM; break;
+    case P_BUSY:  *col = C_CYAN; break;
+    case P_ATTN:  *col = C_HOT; break;
+    case P_HAPPY: *col = C_GREEN; break;
+    default: break;
+  }
+  return sp->frames[personaIdx(p)][frame & 1].lines;
+}
+
+static void drawPet(int cx, int cy, const char* const* art, uint16_t color, uint8_t scale) {
   gfx->setTextSize(scale);
   gfx->setTextColor(color, C_BG);
   int charW = 6 * scale;
   int charH = 8 * scale;
   int lineH = charH + 4 * scale;
+  // Clear pet area first to avoid frame artifacts
+  int boxW = 11 * charW + 8;
+  int boxH = 5 * lineH + 4;
+  gfx->fillRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH, C_BG);
   for (int i = 0; i < 5; i++) {
     int len = strlen(art[i]);
     int tw = len * charW;
     gfx->setCursor(cx - tw / 2, cy - (5 * lineH) / 2 + i * lineH);
     gfx->print(art[i]);
   }
+}
+
+// Animation frame counter (toggles ~1 Hz)
+static uint8_t animFrame() {
+  return (millis() / 800) & 1;
 }
 
 // Page header — label centered, swipe dots below
@@ -173,7 +307,7 @@ static void drawHome() {
   // Big pet center
   Persona p = derive();
   uint16_t petCol;
-  const char** art = petArt(p, &petCol);
+  const char* const* art = petArt(p, &petCol, animFrame());
   drawPet(W / 2, 230, art, petCol, 7);
 
   // Owner / pet name under pet
@@ -220,38 +354,116 @@ static void drawHome() {
     linkSsid(), linkIpStr()[0] ? linkIpStr() : "-", ls);
 }
 
+// Touch zones on PET page
+static const Zone Z_PET_PREV_SPECIES = { 30, 140, 80, 200 };
+static const Zone Z_PET_NEXT_SPECIES = { W - 110, 140, 80, 200 };
+
 // ───── PET page ─────
 static void drawPetPage() {
   gfx->fillScreen(C_BG);
   drawPageHeader("PET", 1, M_COUNT);
 
+  // Pet (smaller, left), stats (right)
   Persona p = derive();
   uint16_t petCol;
-  const char** art = petArt(p, &petCol);
-  drawPet(W / 2, 200, art, petCol, 6);
+  const char* const* art = petArt(p, &petCol, animFrame());
+  drawPet(220, 240, art, petCol, 6);
 
-  // Stats panel
-  int px = 100, py = 320, pw = W - 200, ph = 130;
+  // Species name + cycle hints
+  const Species* sp = SPECIES[curSpecies];
+  gfx->setTextSize(2);
+  gfx->setTextColor(C_DIM, C_BG);
+  gfx->setCursor(50, 220); gfx->print("<");
+  gfx->setCursor(W / 2 - 100, 360);
+  gfx->setTextColor(C_BODY, C_BG);
+  char sbuf[32];
+  snprintf(sbuf, sizeof(sbuf), "%s (%u/%u)", sp->name, curSpecies + 1, N_SPECIES);
+  int sw = strlen(sbuf) * 12;
+  gfx->setCursor(220 - sw / 2, 360);
+  gfx->print(sbuf);
+  gfx->setTextColor(C_DIM, C_BG);
+  gfx->setCursor(W - 60, 220); gfx->print(">");
+
+  // Stats panel right side
+  int px = 440, py = 80, pw = 320, ph = 360;
   gfx->fillRoundRect(px, py, pw, ph, 12, C_PANEL);
+
   gfx->setTextSize(3);
   gfx->setTextColor(C_TEXT, C_PANEL);
-  gfx->setCursor(px + 30, py + 20);
+  gfx->setCursor(px + 20, py + 20);
+  char nameBuf[40];
   if (state.ownerName[0]) {
-    gfx->printf("%s's %s", state.ownerName, state.petName);
+    snprintf(nameBuf, sizeof(nameBuf), "%s's %s", state.ownerName, state.petName);
   } else {
-    gfx->printf("%s", state.petName);
+    snprintf(nameBuf, sizeof(nameBuf), "%s", state.petName);
   }
+  gfx->printf("%.18s", nameBuf);
 
+  // Mood bar (hearts based on approval ratio)
+  int by = py + 80;
+  uint32_t total_resp = state.approvals + state.denials;
+  uint8_t mood = total_resp == 0 ? 2 :
+    state.approvals * 4 / (total_resp == 0 ? 1 : total_resp);
+  if (mood > 4) mood = 4;
   gfx->setTextSize(2);
-  gfx->setCursor(px + 30, py + 70);
-  gfx->setTextColor(C_GREEN, C_PANEL);
-  gfx->printf("Approved: %lu", (unsigned long)state.approvals);
-  gfx->setCursor(px + 320, py + 70);
-  gfx->setTextColor(C_RED, C_PANEL);
-  gfx->printf("Denied: %lu", (unsigned long)state.denials);
-  gfx->setCursor(px + 30, py + 100);
   gfx->setTextColor(C_DIM, C_PANEL);
-  gfx->printf("Tokens today: %lu", (unsigned long)state.tokensToday);
+  gfx->setCursor(px + 20, by); gfx->print("mood");
+  for (int i = 0; i < 4; i++) {
+    int hx = px + 130 + i * 30;
+    if (i < mood) {
+      gfx->fillCircle(hx - 5, by + 10, 5, C_HOT);
+      gfx->fillCircle(hx + 5, by + 10, 5, C_HOT);
+      gfx->fillTriangle(hx - 10, by + 12, hx + 10, by + 12, hx, by + 22, C_HOT);
+    } else {
+      gfx->drawCircle(hx - 5, by + 10, 5, C_DIM);
+      gfx->drawCircle(hx + 5, by + 10, 5, C_DIM);
+    }
+  }
+  by += 50;
+
+  // Fed bar (10 dots, based on tokens)
+  uint8_t fed = (state.tokensToday / 5000) % 11;
+  gfx->setCursor(px + 20, by); gfx->print("fed");
+  for (int i = 0; i < 10; i++) {
+    int dx = px + 100 + i * 18;
+    if (i < fed) gfx->fillCircle(dx, by + 10, 5, C_BODY);
+    else gfx->drawCircle(dx, by + 10, 5, C_DIM);
+  }
+  by += 50;
+
+  // Energy bar (5 boxes, drains over time)
+  static uint32_t lastInteractMs = 0;
+  if (total_resp > 0 || state.connected) lastInteractMs = millis();
+  uint32_t hoursIdle = (millis() - lastInteractMs) / 3600000;
+  int8_t en = 5 - (int8_t)(hoursIdle / 2);
+  if (en < 0) en = 0; if (en > 5) en = 5;
+  gfx->setCursor(px + 20, by); gfx->print("energy");
+  for (int i = 0; i < 5; i++) {
+    int ex = px + 130 + i * 30;
+    if (i < en) gfx->fillRect(ex, by + 4, 24, 16, en >= 4 ? C_GREEN : (en >= 2 ? 0xFFE0 : C_HOT));
+    else gfx->drawRect(ex, by + 4, 24, 16, C_DIM);
+  }
+  by += 50;
+
+  // Level (tokens / 50000)
+  uint8_t lvl = state.tokens / 50000;
+  gfx->fillRoundRect(px + 20, by, 70, 30, 6, C_BODY);
+  gfx->setTextSize(2);
+  gfx->setTextColor(C_BG, C_BODY);
+  gfx->setCursor(px + 30, by + 8);
+  gfx->printf("Lv %u", lvl);
+  by += 50;
+
+  // Stats numbers
+  gfx->setTextSize(2);
+  gfx->setTextColor(C_GREEN, C_PANEL);
+  gfx->setCursor(px + 20, by); gfx->printf("approved %lu", (unsigned long)state.approvals);
+  by += 26;
+  gfx->setTextColor(C_RED, C_PANEL);
+  gfx->setCursor(px + 20, by); gfx->printf("denied   %lu", (unsigned long)state.denials);
+  by += 26;
+  gfx->setTextColor(C_DIM, C_PANEL);
+  gfx->setCursor(px + 20, by); gfx->printf("tokens   %lu", (unsigned long)state.tokens);
 }
 
 // ───── INFO page ─────
@@ -262,12 +474,21 @@ static void drawInfoPage() {
   int px = 60, py = 80;
   gfx->setTextSize(2);
   gfx->setTextColor(C_TEXT, C_BG);
-  gfx->setCursor(px, py); gfx->print("CLAUDE BUDDY 7\""); py += 36;
-
+  gfx->setCursor(px, py); gfx->print("ORACLE BUDDY 7\""); py += 30;
   gfx->setTextSize(1);
+  gfx->setTextColor(0xA01F, C_BG);
+  gfx->setCursor(px, py); gfx->print("AR-RA 01  /  Laris-co  /  Nat Weerawan"); py += 24;
+
   gfx->setTextColor(C_DIM, C_BG);
-  gfx->setCursor(px, py); gfx->print("Tap top-left/right to switch pages."); py += 20;
-  gfx->setCursor(px, py); gfx->print("On approval prompt: tap APPROVE / DENY."); py += 30;
+  gfx->setCursor(px, py); gfx->print("Swipe left/right to switch pages."); py += 16;
+  gfx->setCursor(px, py); gfx->print("PET page: tap pet to cycle species."); py += 16;
+  gfx->setCursor(px, py); gfx->print("On approval prompt: tap APPROVE / DENY."); py += 24;
+
+  gfx->setTextColor(0xA01F, C_BG);
+  gfx->setCursor(px, py); gfx->print("ORACLE RULE 6"); py += 16;
+  gfx->setTextColor(C_DIM, C_BG);
+  gfx->setCursor(px + 12, py); gfx->print("Oracle never pretends to be human."); py += 14;
+  gfx->setCursor(px + 12, py); gfx->print("Born 12 January 2026."); py += 24;
 
   gfx->setTextColor(C_BODY, C_BG);
   gfx->setCursor(px, py); gfx->print("CONNECTION"); py += 20;
@@ -290,8 +511,10 @@ static void drawInfoPage() {
   gfx->setTextColor(C_BODY, C_BG);
   gfx->setCursor(px, py); gfx->print("CREDITS"); py += 20;
   gfx->setTextColor(C_DIM, C_BG);
-  gfx->setCursor(px + 12, py); gfx->print("Inspired by anthropics/claude-desktop-buddy"); py += 16;
-  gfx->setCursor(px + 12, py); gfx->print("Hardware: Waveshare ESP32-S3-Touch-LCD-7.0");
+  gfx->setCursor(px + 12, py); gfx->print("Inspired by anthropics/claude-desktop-buddy"); py += 14;
+  gfx->setCursor(px + 12, py); gfx->print("Built by AR-RA 01 Oracle  +  Claude Opus 4.6"); py += 14;
+  gfx->setCursor(px + 12, py); gfx->print("Hardware: Waveshare ESP32-S3-Touch-LCD-7.0"); py += 14;
+  gfx->setCursor(px + 12, py); gfx->print("github.com/nazt/claude-buddy-7inch");
 }
 
 // ───── Approval overlay ─────
@@ -318,7 +541,11 @@ static void drawApprovalFull() {
   gfx->setCursor((W - hShow * 12) / 2, 220);
   gfx->printf("%.60s", state.promptHint);
 
-  drawPet(W / 2, 270, PET_ATTN, C_BODY, 2);
+  {
+    uint16_t pcol;
+    const char* const* pa = petArt(P_ATTN, &pcol, animFrame());
+    drawPet(W / 2, 270, pa, pcol, 2);
+  }
 
   gfx->fillRoundRect(Z_APPROVE.x, Z_APPROVE.y, Z_APPROVE.w, Z_APPROVE.h, 16, C_DARKG);
   gfx->drawRoundRect(Z_APPROVE.x, Z_APPROVE.y, Z_APPROVE.w, Z_APPROVE.h, 16, C_GREEN);
@@ -463,11 +690,16 @@ void loop() {
           }
         } else if (!inPrompt && isSwipe) {
           if (dx < 0) {
-            // Swipe left → next page
             dispMode = (DispMode)((dispMode + 1) % M_COUNT);
           } else {
-            // Swipe right → prev page
             dispMode = (DispMode)((dispMode + M_COUNT - 1) % M_COUNT);
+          }
+        } else if (!inPrompt && isTap && dispMode == M_PET) {
+          // Tap left/right of pet on PET page = cycle species
+          if (inZone(lastTx, lastTy, Z_PET_PREV_SPECIES)) {
+            curSpecies = (curSpecies + N_SPECIES - 1) % N_SPECIES;
+          } else if (inZone(lastTx, lastTy, Z_PET_NEXT_SPECIES)) {
+            curSpecies = (curSpecies + 1) % N_SPECIES;
           }
         }
       }
@@ -492,6 +724,7 @@ void loop() {
   hash = hash * 31 + (state.approvals & 0xFFFF);
   hash = hash * 31 + (state.denials & 0xFFFF);
   hash = hash * 31 + linkState;
+  hash = hash * 31 + curSpecies;
   for (const char* p = state.msg; *p; p++) hash = hash * 31 + *p;
 
   bool needRedraw = (hash != lastHash) || (dispMode != lastMode) || (inPrompt != lastInPrompt);
@@ -502,7 +735,20 @@ void loop() {
     approvalTimerSec = 0xFFFFFFFF;
     drawScreen(inPrompt);
     lastDrawMs = now;
-  } else if (inPrompt) {
+  } else {
+    // Animation tick — repaint only pet region when frame toggles
+    static uint8_t lastAnimFrame = 0xFF;
+    uint8_t af = animFrame();
+    if (af != lastAnimFrame && !inPrompt) {
+      lastAnimFrame = af;
+      Persona pp = derive();
+      uint16_t pc;
+      const char* const* aa = petArt(pp, &pc, af);
+      if (dispMode == M_HOME) drawPet(W / 2, 230, aa, pc, 7);
+      else if (dispMode == M_PET) drawPet(220, 240, aa, pc, 6);
+    }
+  }
+  if (inPrompt) {
     // Only repaint timer band on approval screen
     uint32_t sec = (now - promptArrivedMs) / 1000;
     if (sec != approvalTimerSec) {
