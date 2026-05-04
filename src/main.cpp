@@ -178,6 +178,25 @@ static const Species SP_CAPY = {"capybara", 0xC2A6, {
    {" +____+  ", "  (^o^)  ", " /    \\  ", " |    |  ", " ^^  ^^  "}},
 }};
 
+// Oracle — all-seeing eye (AR-RA 01)
+static const Species SP_ORACLE = {"oracle", 0xA01F /* purple */, {
+  // SLEEP
+  {{"  .---.  ", " /-...-\\ ", " | (-) | ", " \\.....| ", "  '---'  "},
+   {"  .---.  ", " /-...-\\ ", " |  -  | ", " \\.....| ", "  '---'  "}},
+  // IDLE
+  {{"  .---.  ", " /     \\ ", " | (o) | ", " \\.....| ", "  '---'  "},
+   {"  .---.  ", " /     \\ ", " | (O) | ", " \\.....| ", "  '---'  "}},
+  // BUSY
+  {{"  /---\\  ", " | * * | ", " | (@) | ", " | * * | ", "  \\---/  "},
+   {"  /---\\  ", " | + + | ", " | (@) | ", " | + + | ", "  \\---/  "}},
+  // ATTN
+  {{"  .!!!.  ", " /-...-\\ ", " | (O) | ", " \\.....| ", "  '!!!'  "},
+   {"  .###.  ", " /-...-\\ ", " | (O) | ", " \\.....| ", "  '###'  "}},
+  // HAPPY
+  {{"  .***.  ", " /-vvv-\\ ", " | (^) | ", " \\.~.~.| ", "  '***'  "},
+   {"  .+++.  ", " /-vvv-\\ ", " | (^) | ", " \\.~.~.| ", "  '+++'  "}},
+}};
+
 // Ghost
 static const Species SP_GHOST = {"ghost", C_DIM, {
   {{"  ___   ", " /-.-\\  ", " | * | ", " | * | ", " ^^^^^^ "},
@@ -192,7 +211,7 @@ static const Species SP_GHOST = {"ghost", C_DIM, {
    {" .+++.  ", " /^.^\\  ", " | v | ", " |   | ", " ^^^^^^ "}},
 }};
 
-static const Species* SPECIES[] = { &SP_CAT, &SP_OWL, &SP_ROBOT, &SP_DUCK, &SP_CAPY, &SP_GHOST };
+static const Species* SPECIES[] = { &SP_ORACLE, &SP_CAT, &SP_OWL, &SP_ROBOT, &SP_DUCK, &SP_CAPY, &SP_GHOST };
 static const uint8_t N_SPECIES = sizeof(SPECIES) / sizeof(SPECIES[0]);
 static uint8_t curSpecies = 0;
 
@@ -455,12 +474,21 @@ static void drawInfoPage() {
   int px = 60, py = 80;
   gfx->setTextSize(2);
   gfx->setTextColor(C_TEXT, C_BG);
-  gfx->setCursor(px, py); gfx->print("CLAUDE BUDDY 7\""); py += 36;
-
+  gfx->setCursor(px, py); gfx->print("ORACLE BUDDY 7\""); py += 30;
   gfx->setTextSize(1);
+  gfx->setTextColor(0xA01F, C_BG);
+  gfx->setCursor(px, py); gfx->print("AR-RA 01  /  Laris-co  /  Nat Weerawan"); py += 24;
+
   gfx->setTextColor(C_DIM, C_BG);
-  gfx->setCursor(px, py); gfx->print("Tap top-left/right to switch pages."); py += 20;
-  gfx->setCursor(px, py); gfx->print("On approval prompt: tap APPROVE / DENY."); py += 30;
+  gfx->setCursor(px, py); gfx->print("Swipe left/right to switch pages."); py += 16;
+  gfx->setCursor(px, py); gfx->print("PET page: tap pet to cycle species."); py += 16;
+  gfx->setCursor(px, py); gfx->print("On approval prompt: tap APPROVE / DENY."); py += 24;
+
+  gfx->setTextColor(0xA01F, C_BG);
+  gfx->setCursor(px, py); gfx->print("ORACLE RULE 6"); py += 16;
+  gfx->setTextColor(C_DIM, C_BG);
+  gfx->setCursor(px + 12, py); gfx->print("Oracle never pretends to be human."); py += 14;
+  gfx->setCursor(px + 12, py); gfx->print("Born 12 January 2026."); py += 24;
 
   gfx->setTextColor(C_BODY, C_BG);
   gfx->setCursor(px, py); gfx->print("CONNECTION"); py += 20;
@@ -483,8 +511,10 @@ static void drawInfoPage() {
   gfx->setTextColor(C_BODY, C_BG);
   gfx->setCursor(px, py); gfx->print("CREDITS"); py += 20;
   gfx->setTextColor(C_DIM, C_BG);
-  gfx->setCursor(px + 12, py); gfx->print("Inspired by anthropics/claude-desktop-buddy"); py += 16;
-  gfx->setCursor(px + 12, py); gfx->print("Hardware: Waveshare ESP32-S3-Touch-LCD-7.0");
+  gfx->setCursor(px + 12, py); gfx->print("Inspired by anthropics/claude-desktop-buddy"); py += 14;
+  gfx->setCursor(px + 12, py); gfx->print("Built by AR-RA 01 Oracle  +  Claude Opus 4.6"); py += 14;
+  gfx->setCursor(px + 12, py); gfx->print("Hardware: Waveshare ESP32-S3-Touch-LCD-7.0"); py += 14;
+  gfx->setCursor(px + 12, py); gfx->print("github.com/nazt/claude-buddy-7inch");
 }
 
 // ───── Approval overlay ─────
@@ -694,7 +724,6 @@ void loop() {
   hash = hash * 31 + (state.approvals & 0xFFFF);
   hash = hash * 31 + (state.denials & 0xFFFF);
   hash = hash * 31 + linkState;
-  hash = hash * 31 + animFrame();
   hash = hash * 31 + curSpecies;
   for (const char* p = state.msg; *p; p++) hash = hash * 31 + *p;
 
@@ -706,7 +735,20 @@ void loop() {
     approvalTimerSec = 0xFFFFFFFF;
     drawScreen(inPrompt);
     lastDrawMs = now;
-  } else if (inPrompt) {
+  } else {
+    // Animation tick — repaint only pet region when frame toggles
+    static uint8_t lastAnimFrame = 0xFF;
+    uint8_t af = animFrame();
+    if (af != lastAnimFrame && !inPrompt) {
+      lastAnimFrame = af;
+      Persona pp = derive();
+      uint16_t pc;
+      const char* const* aa = petArt(pp, &pc, af);
+      if (dispMode == M_HOME) drawPet(W / 2, 230, aa, pc, 7);
+      else if (dispMode == M_PET) drawPet(220, 240, aa, pc, 6);
+    }
+  }
+  if (inPrompt) {
     // Only repaint timer band on approval screen
     uint32_t sec = (now - promptArrivedMs) / 1000;
     if (sec != approvalTimerSec) {

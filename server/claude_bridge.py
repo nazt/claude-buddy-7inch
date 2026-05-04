@@ -144,7 +144,7 @@ def build_snapshot():
         "tokens": cumulative_tokens,
         "tokens_today": cumulative_tokens,
         "owner": "Nat",
-        "pet": "claude",
+        "pet": "oracle",
     }
 
 
@@ -173,7 +173,7 @@ async def handle_client(ws):
     clients.add(ws)
     print(f"[bridge] client connected from {ws.remote_address}", flush=True)
     await ws.send(json.dumps({"cmd": "owner", "name": "Nat"}) + "\n")
-    await ws.send(json.dumps({"cmd": "name", "name": "claude"}) + "\n")
+    await ws.send(json.dumps({"cmd": "name", "name": "oracle"}) + "\n")
     try:
         async for raw in ws:
             line = raw.strip() if isinstance(raw, str) else raw.decode("utf-8", errors="replace").strip()

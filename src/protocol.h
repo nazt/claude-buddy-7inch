@@ -20,7 +20,7 @@ struct ClaudeState {
   char     promptTool[32] = "";
   char     promptHint[64] = "";
   char     ownerName[24] = "";
-  char     petName[24] = "buddy";
+  char     petName[24] = "oracle";
   uint32_t approvals = 0;
   uint32_t denials = 0;
 };
