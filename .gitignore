@@ -1,0 +1,9 @@
+.pio/
+.vscode/
+*.elf
+*.bin
+*.map
+__pycache__/
+*.pyc
+learn/anthropics/claude-desktop-buddy/origin
+src/secrets.h
